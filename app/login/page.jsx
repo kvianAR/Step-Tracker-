@@ -42,52 +42,50 @@ export default function LoginPage() {
     },
   });
 
-  function onSubmit(values) {
+  async function onSubmit(values) {
     setIsLoading(true);
-    setTimeout(() => {
-      if (values.email === 'demo@example.com' && values.password === 'password') {
-        const user = {
-          id: '1',
-          name: 'Demo User',
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email: values.email,
-        };
-        
-        localStorage.setItem('stepSync_user', JSON.stringify(user));
-        
+          password: values.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
         });
-        
+
+        // Store user data in localStorage for client-side access
+        localStorage.setItem('stepSync_user', JSON.stringify(data.user));
+
         router.push('/dashboard');
       } else {
-        const storedUser = localStorage.getItem('stepSync_user');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          if (user.email === values.email) {
-            toast({
-              title: "Welcome back!",
-              description: "You have successfully logged in.",
-            });
-            router.push('/dashboard');
-          } else {
-            toast({
-              title: "Login failed",
-              description: "Invalid email or password. Try demo@example.com / password",
-              variant: "destructive",
-            });
-          }
-        } else {
-          toast({
-            title: "Login failed",
-            description: "Invalid email or password. Try demo@example.com / password",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Login failed",
+          description: data.error || "Invalid email or password",
+          variant: "destructive",
+        });
       }
-      
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: "An error occurred during login. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -97,7 +95,7 @@ export default function LoginPage() {
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
           Back to home
         </Link>
-        
+
         <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-8 shadow-sm">
           <div className="flex flex-col space-y-2 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -108,7 +106,7 @@ export default function LoginPage() {
               Enter your credentials to access your account
             </p>
           </div>
-          
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -124,7 +122,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="password"
@@ -138,26 +136,26 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              
+
               <div className="flex items-center justify-end">
                 <Button variant="link" className="px-0 text-sm font-medium">
                   Forgot password?
                 </Button>
               </div>
-              
+
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Log in"}
               </Button>
             </form>
           </Form>
-          
+
           <div className="text-center text-sm">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="font-medium text-primary underline underline-offset-4">
               Sign up
             </Link>
           </div>
-          
+
           <div className="text-center text-xs text-muted-foreground">
             <p>Demo credentials:</p>
             <p>Email: demo@example.com</p>

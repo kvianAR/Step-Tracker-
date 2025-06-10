@@ -51,28 +51,52 @@ export default function SignupPage() {
     },
   });
 
-  function onSubmit(values) {
+  async function onSubmit(values) {
     setIsLoading(true);
-    
-    // In a real app, this would be an API call to register the user
-    setTimeout(() => {
-      // Store user in localStorage for demo purposes
-      const user = {
-        id: Date.now().toString(),
-        name: values.name,
-        email: values.email,
-      };
-      
-      localStorage.setItem('stepSync_user', JSON.stringify(user));
-      
-      toast({
-        title: "Account created!",
-        description: "You have successfully signed up.",
+
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: values.name,
+          email: values.email,
+          password: values.password,
+        }),
       });
-      
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Account created!",
+          description: "You have successfully signed up.",
+        });
+
+        // Store user data in localStorage for client-side access
+        localStorage.setItem('stepSync_user', JSON.stringify(data.user));
+
+        // Redirect to login page to authenticate
+        router.push('/login');
+      } else {
+        toast({
+          title: "Signup failed",
+          description: data.error || "An error occurred during signup",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast({
+        title: "Signup failed",
+        description: "An error occurred during signup. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      router.push('/dashboard');
-    }, 1500);
+    }
   }
 
   return (
@@ -82,7 +106,7 @@ export default function SignupPage() {
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
           Back to home
         </Link>
-        
+
         <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-8 shadow-sm">
           <div className="flex flex-col space-y-2 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -93,7 +117,7 @@ export default function SignupPage() {
               Enter your information to create an account
             </p>
           </div>
-          
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -109,7 +133,7 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="email"
@@ -123,7 +147,7 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="password"
@@ -137,7 +161,7 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="confirmPassword"
@@ -151,13 +175,13 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              
+
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating account..." : "Create account"}
               </Button>
             </form>
           </Form>
-          
+
           <div className="text-center text-sm">
             Already have an account?{" "}
             <Link href="/login" className="font-medium text-primary underline underline-offset-4">
