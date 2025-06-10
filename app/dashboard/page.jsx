@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { format, subDays } from 'date-fns';
-import { ActivityIcon, CalendarIcon, ChevronRightIcon, FileIcon as FireIcon, TrendingUpIcon } from 'lucide-react';
+import { ActivityIcon, CalendarIcon, ChevronRightIcon, FlameIcon, TrendingUpIcon } from 'lucide-react'; // Changed FileIcon to FlameIcon
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { Button } from '@/components/ui/button';
@@ -12,22 +12,22 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateDemoData } from '@/lib/demo-data';
 import { StepInput } from '@/components/step-input';
+import { SleepInput } from '@/components/sleep-input';
+import { Leaderboard } from '@/components/leaderboard';
+import { SleepChart } from '@/components/sleep-chart';
 
 export default function DashboardPage() {
   const pathname = usePathname();
   const isDemo = pathname === '/dashboard/demo';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
-    // For a real app, this would fetch from an API
     const demoData = generateDemoData();
-    
-    // In a real app we'd fetch user data, for demo we'll use the generated data
     setData(demoData);
     setLoading(false);
   }, []);
-  
+
   if (loading) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
@@ -35,37 +35,42 @@ export default function DashboardPage() {
       </div>
     );
   }
-  
+
   const today = new Date();
   const formattedToday = format(today, 'yyyy-MM-dd');
   const todayData = data.dailyData.find(day => day.date === formattedToday) || { steps: 0, goal: 10000 };
   const progressPercentage = Math.min(Math.round((todayData.steps / todayData.goal) * 100), 100);
-  
-  // Last 7 days data for the chart
+
+  const CALORIES_PER_STEP = 0.04;
+  const caloriesBurned = (todayData.steps * CALORIES_PER_STEP).toFixed(1); 
+
   const lastWeekData = data.dailyData.slice(-7).map(day => ({
     date: format(new Date(day.date), 'EEE'),
     steps: day.steps,
   }));
 
   return (
-    <div className="py-6 space-y-6"> {/* Removed 'container' and 'mx-auto' */}
+    <div className="py-6 space-y-6">
       <div className="flex flex-col justify-between space-y-2 md:flex-row md:items-center md:space-y-0">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="flex items-center space-x-2">
           <p className="text-sm text-muted-foreground">
             {format(today, 'MMMM d,PPPP')}
           </p>
-          {!isDemo && <StepInput date={formattedToday} />}
+          <div className="flex space-x-2">
+            {!isDemo && <StepInput date={formattedToday} />}
+            <SleepInput date={formattedToday} />
+          </div>
         </div>
       </div>
-      
+
       {/* Today's progress card */}
       <Card className="overflow-hidden">
         <CardHeader className="bg-primary/5 pb-4">
           <CardTitle className="text-xl">Today&apos;s Progress</CardTitle>
           <CardDescription>
-            {progressPercentage >= 100 
-              ? "Congratulations! You've met your goal for today." 
+            {progressPercentage >= 100
+              ? "Congratulations! You've met your goal for today."
               : `${10000 - todayData.steps} more steps to reach your daily goal`}
           </CardDescription>
         </CardHeader>
@@ -73,22 +78,26 @@ export default function DashboardPage() {
           <div className="flex flex-col items-center justify-center space-y-6 text-center">
             <div className="relative flex h-40 w-40 items-center justify-center rounded-full bg-primary/10">
               <div className="absolute inset-2 rounded-full border-8 border-primary/20"></div>
-              <div 
-                className="absolute inset-2 rounded-full border-8 border-primary transition-all duration-1000 ease-in-out" 
-                style={{ 
+              <div
+                className="absolute inset-2 rounded-full border-8 border-primary transition-all duration-1000 ease-in-out"
+                style={{
                   clipPath: `polygon(50% 50%, 50% 0%, ${progressPercentage > 50 ? '100% 0%' : `${50 + progressPercentage}% 0%`}, ${
                     progressPercentage > 75 ? '100% 100%' : progressPercentage > 50 ? `100% ${(progressPercentage - 50) * 4}%` : '50% 50%'
                   }, ${
                     progressPercentage > 75 ? `${150 - progressPercentage * 2}% 100%` : '50% 50%'
-                  }, 50% 50%)` 
+                  }, 50% 50%)`
                 }}
               ></div>
               <div className="flex flex-col">
                 <span className="text-4xl font-bold">{todayData.steps.toLocaleString()}</span>
                 <span className="text-sm text-muted-foreground">steps</span>
+                {/* --- New: Display calories burned --- */}
+                <span className="text-sm text-muted-foreground flex items-center justify-center gap-1 mt-1">
+                  <FlameIcon className="h-4 w-4 text-orange-500" /> {caloriesBurned} kcal
+                </span>
               </div>
             </div>
-            
+
             <div className="w-full space-y-2">
               <div className="flex justify-between text-sm">
                 <span>0</span>
@@ -100,20 +109,20 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Stats grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-            <FireIcon className="h-4 w-4 text-orange-500" />
+            <FlameIcon className="h-4 w-4 text-orange-500" /> {/* Changed FireIcon to FlameIcon */}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.currentStreak} days</div>
             <p className="text-xs text-muted-foreground">Best: {data.bestStreak} days</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Average Steps</CardTitle>
@@ -124,7 +133,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">Per day over the last 30 days</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Steps</CardTitle>
@@ -135,7 +144,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Goal Completion</CardTitle>
@@ -147,7 +156,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Weekly chart */}
       <Card>
         <CardHeader>
@@ -166,28 +175,33 @@ export default function DashboardPage() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickFormatter={(value) => `${value/1000}k`} 
-                  domain={[0, 'dataMax + 2000']} 
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${value/1000}k`}
+                  domain={[0, 'dataMax + 2000']}
                 />
-                <Tooltip 
+                <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
+                      const steps = payload[0].value;
+                      const calories = (steps * CALORIES_PER_STEP).toFixed(1); // Calculate calories for tooltip
+
                       return (
                         <div className="rounded-lg border bg-card p-2 shadow-sm">
                           <div className="grid grid-cols-2 gap-2">
                             <div className="flex flex-col">
                               <span className="text-sm font-medium">{payload[0].payload.date}</span>
                               <span className="text-xs text-muted-foreground">Steps</span>
+                              <span className="text-xs text-muted-foreground">Calories</span> {/* New: Calories label */}
                             </div>
                             <div className="flex flex-col text-right">
-                              <span className="text-sm font-medium">{payload[0].value.toLocaleString()}</span>
+                              <span className="text-sm font-medium">{steps.toLocaleString()}</span>
+                              <span className="text-sm font-medium">{calories} kcal</span> {/* New: Calories value */}
                               <span className="text-xs text-muted-foreground">
-                                {payload[0].value >= 10000 ? '✅ Goal met' : '❌ Goal missed'}
+                                {steps >= 10000 ? '✅ Goal met' : '❌ Goal missed'}
                               </span>
                             </div>
                           </div>
@@ -197,12 +211,12 @@ export default function DashboardPage() {
                     return null;
                   }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="steps" 
-                  stroke="hsl(var(--primary))" 
+                <Area
+                  type="monotone"
+                  dataKey="steps"
+                  stroke="hsl(var(--primary))"
                   strokeWidth={2}
-                  fill="url(#stepGradient)" 
+                  fill="url(#stepGradient)"
                   activeDot={{ r: 6, fill: "hsl(var(--primary))", stroke: "hsl(var(--background))", strokeWidth: 2 }}
                 />
               </AreaChart>
@@ -215,6 +229,12 @@ export default function DashboardPage() {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Sleep Tracker Chart */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <SleepChart />
+        <Leaderboard />
+      </div>
     </div>
   );
 }
